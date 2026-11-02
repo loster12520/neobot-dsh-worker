@@ -73,9 +73,9 @@ export class SyncClient {
   }
 
   /** 追加一条待上报事件；seq 单调递增。 */
-  enqueueReport(type, taskId, payload = {}) {
+  enqueueReport(kind, taskId, payload = {}) {
     this.seq += 1;
-    this._reports.push({ seq: this.seq, type, task_id: taskId, payload });
+    this._reports.push({ seq: this.seq, kind, task_id: taskId, payload });
   }
 
   /** 单轮同步：上报本地事件 + 拉取并处理命令。 */
@@ -192,11 +192,11 @@ export class SyncClient {
 
   async _deliver(command) {
     if (this._seenCommands.has(command.id)) {
-      this.logger.info?.(`[neobot-worker] duplicate command ignored: ${command.id} (${command.type})`);
+      this.logger.info?.(`[neobot-worker] duplicate command ignored: ${command.id} (${command.kind})`);
       return;
     }
     if (!this._commandHandler) {
-      throw new SyncError(`no command handler for ${command.type}`);
+      throw new SyncError(`no command handler for ${command.kind}`);
     }
     await this._commandHandler(command);
   }

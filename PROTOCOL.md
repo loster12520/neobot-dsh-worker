@@ -21,8 +21,8 @@
   "cursor": 41,
   "health": {"version": "0.1.0", "capacity": 2, "running": 1},
   "reports": [
-    {"seq": 41, "type": "task.event", "task_id": "t-1", "payload": {"kind": "stage", "text": "改了 3 个文件"}},
-    {"seq": 42, "type": "task.done", "task_id": "t-1", "payload": {"outcome": "completed", "summary": "测试通过"}}
+    {"seq": 41, "kind": "task.event", "task_id": "t-1", "payload": {"phase": "stage", "text": "改了 3 个文件"}},
+    {"seq": 42, "kind": "task.done", "task_id": "t-1", "payload": {"outcome": "completed", "summary": "测试通过"}}
   ],
   "acks": ["cmd-7"]
 }
@@ -41,7 +41,7 @@
   "server_time": 1762000000.0,
   "cursor": 7,
   "commands": [
-    {"id": "cmd-7", "type": "task.open", "task_id": "t-1", "payload": {"cwd": "/repo", "mode": "write", "prompt": "..."}}
+    {"id": "cmd-7", "kind": "task.dispatch", "task_id": "t-1", "payload": {"cwd": "/repo", "mode": "write", "prompt": "..."}}
   ]
 }
 ```
@@ -55,7 +55,7 @@
 | type | payload | 说明 |
 |---|---|---|
 | `daemon.hello` | `{}` | 连接/重连后的对账：daemon 返回当前任务清单与健康 |
-| `task.open` | `{cwd, mode, prompt, policy?}` | 新建 Worker 会话并开始第一轮 |
+| `task.dispatch` | `{cwd, mode, prompt, policy?}` | 新建 Worker 会话并开始第一轮 |
 | `task.input` | `{text, mode: "steer"\|"queue"}` | 插话：`steer` 下一步生效，`queue` 空闲时再跑 |
 | `task.cancel` | `{reason?}` | 取消当前轮；会话保留 |
 | `task.status` | `{}` | 请求回一条状态快照 |
@@ -65,12 +65,14 @@
 
 | type | payload | 说明 |
 |---|---|---|
-| `task.event` | `{kind, text, data?}` | 语义事件：`kind ∈ stage / blocker / progress / artifact` |
+| `task.event` | `{phase, text, data?}` | 语义事件：`phase ∈ stage / blocker / progress / artifact` |
 | `task.done` | `{outcome: "completed"\|"failed"\|"cancelled", summary, artifacts?}` | 任务闭环 |
 | `perm.request` | `{request_id, action, detail, timeout_seconds}` | 越界审批请求 |
 | `daemon.health` | `{version, capacity, running, error?}` | 健康与容量 |
 
 事件只传语义摘要，不传原始工具流；完整日志留在开发机本地，必要时以路径引用。
+
+> 字段命名：报告/命令的消息类型统一用 `kind`；事件分类放在 `payload.phase`，避免和消息类型混淆。
 
 ## 6. 任务状态机
 

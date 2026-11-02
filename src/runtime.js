@@ -21,11 +21,11 @@ export class WorkerRuntime {
   }
 
   async handle(command) {
-    this.logger.info?.(`[neobot-worker] ${command.type} ${command.task_id} (${command.id})`);
-    switch (command.type) {
+    this.logger.info?.(`[neobot-worker] ${command.kind} ${command.task_id} (${command.id})`);
+    switch (command.kind) {
       case 'daemon.hello':
         return this._hello();
-      case 'task.open':
+      case 'task.dispatch':
         return this._open(command);
       case 'task.input':
         return this._input(command);
@@ -36,7 +36,7 @@ export class WorkerRuntime {
       case 'perm.answer':
         return this._answerPermission(command);
       default:
-        throw new Error(`unsupported command type: ${command.type}`);
+        throw new Error(`unsupported command kind: ${command.kind}`);
     }
   }
 
@@ -50,7 +50,7 @@ export class WorkerRuntime {
     const stale = this.registry.markStale(nowSeconds, this.config.taskStaleSeconds);
     for (const task of stale) {
       this.report('task.event', task.task_id, {
-        kind: 'blocker',
+        phase: 'blocker',
         text: `超过 ${this.config.taskStaleSeconds}s 没有收到 Worker 事件，已标记 stale`,
       });
     }
@@ -65,7 +65,7 @@ export class WorkerRuntime {
     this.report('daemon.health', 'daemon', this.health.snapshot());
     for (const task of this.registry.list()) {
       this.report('task.event', task.task_id, {
-        kind: 'stage',
+        phase: 'stage',
         text: `daemon 已连接，本地任务状态：${task.status}`,
       });
     }
@@ -74,11 +74,11 @@ export class WorkerRuntime {
   async _open(command) {
     const { cwd, prompt } = command.payload || {};
     if (!cwd || !prompt) {
-      throw new Error('task.open requires payload.cwd and payload.prompt');
+      throw new Error('task.dispatch requires payload.cwd and payload.prompt');
     }
     const taskId = command.task_id;
     if (this.registry.get(taskId)) {
-      this.report('task.event', taskId, { kind: 'stage', text: '任务已存在，忽略重复 task.open' });
+      this.report('task.event', taskId, { phase: 'stage', text: '任务已存在，忽略重复 task.dispatch' });
       return;
     }
     const record = this.registry.create({
@@ -88,12 +88,12 @@ export class WorkerRuntime {
       prompt,
       owner: command.payload.owner || '',
     });
-    this.report('task.event', taskId, { kind: 'stage', text: 'Worker 已接收任务' });
+    this.report('task.event', taskId, { phase: 'stage', text: 'Worker 已接收任务' });
     try {
       const opened = await this.sessions.open({ taskId, cwd: record.cwd, prompt });
       this.registry.update(taskId, { status: 'running', session_id: opened.sessionId });
       this.report('task.event', taskId, {
-        kind: 'stage',
+        phase: 'stage',
         text: 'Worker Session 已启动',
         data: { session_id: opened.sessionId },
       });
@@ -121,14 +121,14 @@ export class WorkerRuntime {
         await this.sessions.prompt(taskId, text);
       }
       this.report('task.event', taskId, {
-        kind: 'stage',
+        phase: 'stage',
         text: mode === 'steer' ? '补充信息已下发（下一步生效）' : '补充信息已排队',
       });
       return;
     }
     await this.sessions.prompt(taskId, text);
     this.registry.update(taskId, { status: 'running' });
-    this.report('task.event', taskId, { kind: 'stage', text: '任务已从空闲状态恢复' });
+    this.report('task.event', taskId, { phase: 'stage', text: '任务已从空闲状态恢复' });
   }
 
   async _cancel(command) {
@@ -149,7 +149,7 @@ export class WorkerRuntime {
     if (!record) throw new Error(`task.status for unknown task ${taskId}`);
     const session = await this.sessions.status(taskId);
     this.report('task.event', taskId, {
-      kind: 'stage',
+      phase: 'stage',
       text: `状态：${record.status}`,
       data: { session, record },
     });
@@ -162,7 +162,7 @@ export class WorkerRuntime {
     await this.sessions.answerPermission(taskId, requestId, Boolean(allow));
     this.registry.touch(taskId, { status: 'running' });
     this.report('task.event', taskId, {
-      kind: 'stage',
+      phase: 'stage',
       text: allow ? '审批已放行（one-shot）' : '审批已拒绝',
     });
   }

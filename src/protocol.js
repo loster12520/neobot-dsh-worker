@@ -7,7 +7,7 @@ export const PROTOCOL_VERSION = 1;
 
 export const COMMAND_TYPES = new Set([
   'daemon.hello',
-  'task.open',
+  'task.dispatch',
   'task.input',
   'task.cancel',
   'task.status',
@@ -32,7 +32,7 @@ export class ProtocolError extends Error {
 /**
  * @typedef {object} SyncReport
  * @property {number} seq
- * @property {string} type
+ * @property {string} kind
  * @property {string} task_id
  * @property {object} payload
  */
@@ -40,7 +40,7 @@ export class ProtocolError extends Error {
 /**
  * @typedef {object} DaemonCommand
  * @property {string} id
- * @property {string} type
+ * @property {string} kind
  * @property {string} task_id
  * @property {object} payload
  */
@@ -66,8 +66,8 @@ export function normalizeReport(report) {
   if (!Number.isInteger(seq) || seq < 1) {
     throw new ProtocolError('report.seq must be a positive integer');
   }
-  if (!REPORT_TYPES.has(report.type)) {
-    throw new ProtocolError(`unknown report type: ${String(report.type)}`, 'unknown_type');
+  if (!REPORT_TYPES.has(report.kind)) {
+    throw new ProtocolError(`unknown report kind: ${String(report.kind)}`, 'unknown_type');
   }
   if (typeof report.task_id !== 'string' || !report.task_id) {
     throw new ProtocolError('report.task_id must be a non-empty string');
@@ -76,7 +76,7 @@ export function normalizeReport(report) {
   if (!isPlainObject(payload)) {
     throw new ProtocolError('report.payload must be an object');
   }
-  return { seq, type: report.type, task_id: report.task_id, payload };
+  return { seq, kind: report.kind, task_id: report.task_id, payload };
 }
 
 /** @param {DaemonCommand} command @returns {DaemonCommand} */
@@ -87,8 +87,8 @@ export function normalizeCommand(command) {
   if (typeof command.id !== 'string' || !command.id) {
     throw new ProtocolError('command.id must be a non-empty string');
   }
-  if (!COMMAND_TYPES.has(command.type)) {
-    throw new ProtocolError(`unknown command type: ${String(command.type)}`, 'unknown_type');
+  if (!COMMAND_TYPES.has(command.kind)) {
+    throw new ProtocolError(`unknown command kind: ${String(command.kind)}`, 'unknown_type');
   }
   if (typeof command.task_id !== 'string' || !command.task_id) {
     throw new ProtocolError('command.task_id must be a non-empty string');
@@ -97,7 +97,7 @@ export function normalizeCommand(command) {
   if (!isPlainObject(payload)) {
     throw new ProtocolError('command.payload must be an object');
   }
-  return { id: command.id, type: command.type, task_id: command.task_id, payload };
+  return { id: command.id, kind: command.kind, task_id: command.task_id, payload };
 }
 
 /** @param {unknown} value @returns {SyncResponse} */

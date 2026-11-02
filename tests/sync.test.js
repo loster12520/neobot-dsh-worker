@@ -39,7 +39,7 @@ test('syncOnce 上报事件、拉取命令并 ack', async () => {
     calls += 1;
     const commands =
       calls === 1
-        ? [{ id: 'cmd-1', type: 'task.open', task_id: 't-1', payload: { cwd: '/tmp', prompt: 'hi' } }]
+        ? [{ id: 'cmd-1', kind: 'task.dispatch', task_id: 't-1', payload: { cwd: '/tmp', prompt: 'hi' } }]
         : [];
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ v: 1, cursor: 1, commands }));
@@ -86,7 +86,7 @@ test('重复命令不会重复执行，但仍会 ack', async () => {
         cursor: 1,
         commands:
           calls <= 2
-            ? [{ id: 'cmd-dup', type: 'task.status', task_id: 't-1', payload: {} }]
+            ? [{ id: 'cmd-dup', kind: 'task.status', task_id: 't-1', payload: {} }]
             : [],
       }),
     );

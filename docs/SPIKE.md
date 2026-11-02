@@ -67,7 +67,7 @@ await agent.cancel({ kind: 'user' }) // 中止
 # 开发机本地
 dsh --profile neobot-worker web --host 127.0.0.1 --port 3083
 
-# NeoBot 侧（手动/脚本）发一个 task.open，观察：
+# NeoBot 侧（手动/脚本）发一个 task.dispatch，观察：
 # 1. daemon 拉起 Worker Session
 # 2. task.event(stage) 上报
 # 3. 运行中发 task.input(steer) 生效
