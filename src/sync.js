@@ -1,5 +1,8 @@
 /** 出站长轮询客户端：把本地事件推给 NeoBot，把 NeoBot 的命令拉回来。 */
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { PROTOCOL_VERSION, assertSyncResponse } from './protocol.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,6 +43,7 @@ export class SyncClient {
     fetchImpl = globalThis.fetch,
     healthProvider = null,
     maxBackoffMs = 30000,
+    seqFile = null,
   }) {
     if (typeof fetchImpl !== 'function') {
       throw new SyncError('global fetch is unavailable; Node.js 22+ is required');
@@ -53,7 +57,10 @@ export class SyncClient {
     this.healthProvider = healthProvider;
     this.maxBackoffMs = maxBackoffMs;
 
-    this.seq = 0;
+    // 重启后 seq 必须继续单调，否则网关按 (daemon_id, seq) 去重会把新报告当旧的重发。
+    // 没有持久文件时用秒级时间戳做种子，保证一定大于上一次运行的 seq。
+    this.seqFile = seqFile;
+    this.seq = this._loadSeq();
     this.cursor = 0;
     this.failures = 0;
     this.fatalError = null;
@@ -76,6 +83,7 @@ export class SyncClient {
   enqueueReport(kind, taskId, payload = {}) {
     this.seq += 1;
     this._reports.push({ seq: this.seq, kind, task_id: taskId, payload });
+    this._saveSeq();
   }
 
   /** 单轮同步：上报本地事件 + 拉取并处理命令。 */
@@ -127,6 +135,11 @@ export class SyncClient {
     this._reports = this._reports.filter((item) => !sentReportSet.has(item));
     this._acks = this._acks.filter((item) => !sentAckSet.has(item));
     this.cursor = data.cursor;
+    // 服务端 cursor 可能大于本地 seq（例如首次连接/换机器），取较大值保证单调。
+    if (Number.isInteger(data.cursor) && data.cursor > this.seq) {
+      this.seq = data.cursor;
+      this._saveSeq();
+    }
 
     for (const command of data.commands) {
       await this._deliver(command);
@@ -174,6 +187,29 @@ export class SyncClient {
     if (this._abort) {
       this._abort.abort();
       this._abort = null;
+    }
+  }
+
+  _loadSeq() {
+    try {
+      if (!this.seqFile || !fs.existsSync(this.seqFile)) {
+        return Math.floor(Date.now() / 1000);
+      }
+      const raw = JSON.parse(fs.readFileSync(this.seqFile, 'utf8'));
+      const value = Number(raw?.seq);
+      return Number.isInteger(value) && value > 0 ? value : Math.floor(Date.now() / 1000);
+    } catch {
+      return Math.floor(Date.now() / 1000);
+    }
+  }
+
+  _saveSeq() {
+    if (!this.seqFile) return;
+    try {
+      fs.mkdirSync(path.dirname(this.seqFile), { recursive: true });
+      fs.writeFileSync(this.seqFile, JSON.stringify({ seq: this.seq, cursor: this.cursor }));
+    } catch {
+      /* 持久化失败不影响同步；下次启动用时间戳种子兜底 */
     }
   }
 

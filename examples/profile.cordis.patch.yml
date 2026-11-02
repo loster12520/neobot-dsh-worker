@@ -14,3 +14,5 @@
         pollWaitSeconds: 25
         taskStaleSeconds: 900
         agentPreset: "neobot-worker"
+        permissionPreset: "workspace-write"
+        approvalTimeoutSeconds: 600

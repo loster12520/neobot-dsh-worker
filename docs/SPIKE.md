@@ -1,7 +1,8 @@
 # SPIKE：接通 DSH 进程内 Session API
 
-> 目标：在 0.2.1-rc.2 上确认 `src/session-adapter.js` 需要的 5 个调用，并写一个
-> 本地单任务冒烟。**完成前不要宣称 daemon 可用**。
+> 目标：在 0.2.1-rc.2 上逐项验收 `src/session-adapter.js` 的 5 个调用与本地单任务冒烟。
+> 实现已落地（`sessionController.create/resolveAgent`、`agent.steer/followup/cancel`、
+> `session/event`、`approval/request`、`whenIdle` 兜底）；**本清单全部通过后再宣称可用**。
 
 ## 1. 创建 Session
 

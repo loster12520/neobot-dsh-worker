@@ -11,9 +11,9 @@ neobot-dsh-worker（本仓库，开发机 DSH 进程内插件）
 多个 Worker Session（每任务一个，独立 cwd，完整工具，不直接对用户说话）
 ```
 
-> 状态：**骨架 + 可运行协议客户端**。`src/sync.js`、`src/tasks.js`、`src/runtime.js`
-> 已可测试；`src/session-adapter.js` 是唯一未接通的缝（DSH 内部 API 需要先跑
-> `docs/SPIKE.md` 的验证）。协议见 [PROTOCOL.md](PROTOCOL.md)。
+> 状态：**协议客户端 + DSH 会话适配已接通**。`sync / tasks / runtime / session-adapter`
+> 均已实现并有 `node:test` 覆盖；当前在真机联调（事件回传、审批、daemon 重启恢复按
+> `docs/SPIKE.md` 的验收项跑）。协议见 [PROTOCOL.md](PROTOCOL.md)。
 
 ## 1. 安装（开发机）
 
@@ -73,7 +73,7 @@ npm test          # node --test：协议同步、去重、401 致命错误
 npm run check     # node --check 语法
 ```
 
-不需要 DSH 进程；`session-adapter` 用抛错的方式明确标记“未接通”，避免假成功。
+不需要 DSH 进程；`session-adapter` 的单测用 fake `ctx`/`agent`，不依赖真实 DSH。
 
 ## 4. 目录
 
@@ -85,9 +85,9 @@ src/
 ├── sync.js             # 出站长轮询（seq/ack/去重/退避）
 ├── tasks.js            # 任务登记（JSON 原子写）
 ├── runtime.js          # 命令 → 任务 + 会话
-├── session-adapter.js  # 唯一依赖 DSH 内部 API 的适配层（TODO）
+├── session-adapter.js  # 唯一依赖 DSH 内部 API 的适配层（创建/事件/审批）
 └── health.js           # 容量/健康快照
-docs/SPIKE.md           # 接通 session-adapter 前必须验证的 5 件事
+docs/SPIKE.md           # 真机验收清单（会话/事件/插话/审批/重启恢复）
 ```
 
 ## 5. 边界

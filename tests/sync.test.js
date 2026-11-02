@@ -64,7 +64,7 @@ test('syncOnce 上报事件、拉取命令并 ack', async () => {
     assert.equal(handled[0].id, 'cmd-1');
     assert.equal(requests[0].auth, 'Bearer test-token-1234567890');
     assert.equal(requests[0].body.reports.length, 1);
-    assert.equal(requests[0].body.reports[0].seq, 1);
+    assert.ok(requests[0].body.reports[0].seq > 0);
 
     await client.syncOnce();
     assert.deepEqual(requests[1].body.acks, ['cmd-1']);

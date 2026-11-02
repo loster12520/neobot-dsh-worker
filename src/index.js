@@ -43,6 +43,7 @@ export async function apply(ctx, rawConfig = {}) {
     daemonId: config.daemonId,
     pollWaitSeconds: config.pollWaitSeconds,
     logger,
+    seqFile: path.join(config.stateDir, 'sync-seq.json'),
   });
   const health = new WorkerHealth({ config, registry, client, sessions });
   client.healthProvider = () => health.snapshot();
@@ -71,6 +72,8 @@ export async function apply(ctx, rawConfig = {}) {
     `[neobot-worker] daemon=${config.daemonId} gateway=${config.gatewayUrl} ` +
       `workspaces=${config.workspaces.length} maxWorkers=${config.maxWorkers}`,
   );
+  // 先对账旧任务（daemon 重启后没有 Session 映射的任务报 failed），再起同步循环。
+  runtime.reconcile();
   client.enqueueReport('daemon.health', 'daemon', health.snapshot());
   void client.start();
 }

@@ -65,6 +65,8 @@ export function loadConfig(raw = {}) {
     pollWaitSeconds,
     taskStaleSeconds,
     agentPreset: String(raw.agentPreset || 'neobot-worker'),
+    permissionPreset: String(raw.permissionPreset || 'workspace-write'),
+    approvalTimeoutSeconds: clampInt(raw.approvalTimeoutSeconds, 30, 3600, 600, 'approvalTimeoutSeconds'),
   };
 }
 

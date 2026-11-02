@@ -14,6 +14,8 @@
         workspaces: []
         maxWorkers: 2
         pollWaitSeconds: 25
+        permissionPreset: workspace-write
+        approvalTimeoutSeconds: 600
 
     # Worker Session 的 Agent preset：只有执行工具，没有面向用户的工具。
     # 前台命令 5 秒后自动转后台 job，避免长命令阻塞下一条指令。
@@ -63,6 +65,8 @@
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-fs-search
             name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
           - id: tool-jobs
             name: '@deepseek-ai/dsh-tool-jobs'
             config:
