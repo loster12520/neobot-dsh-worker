@@ -1,0 +1,91 @@
+# neobot-dsh-worker bundle 层：插入 worker daemon 插件 + 执行器 Agent preset。
+#
+# 真正的连接参数（gatewayUrl / token / daemonId / workspaces）由 profile 的
+# cordis.patch.yml 覆盖，见 README「安装」一节；本文件只放与部署无关的默认值。
+- insert:
+    - id: neobot-worker
+      name: neobot-dsh-worker
+      config:
+        # profile 必须覆盖以下三项；留空时插件拒绝启动。
+        gatewayUrl: ""
+        token: ""
+        daemonId: ""
+        stateDir: ""
+        workspaces: []
+        maxWorkers: 2
+        pollWaitSeconds: 25
+
+    # Worker Session 的 Agent preset：只有执行工具，没有面向用户的工具。
+    # 前台命令 5 秒后自动转后台 job，避免长命令阻塞下一条指令。
+    - id: neobot-worker-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: neobot-worker
+        name: neobot-dsh-worker 执行器
+        description: neobot-dsh-worker 的 Worker Session 专用，不供手动选择。前台命令超 5 秒转入后台。
+        order: 90
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are a coding agent powered by the {{model}} model.
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: shell
+            name: cordis:group
+            group: true
+            isolate:
+              shell: true
+            config:
+              - id: bash-sandbox
+                name: '@deepseek-ai/dsh-bash-sandbox'
+                disabled: !!js process.platform === 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: pwsh-sandbox
+                name: '@deepseek-ai/dsh-pwsh-sandbox'
+                disabled: !!js process.platform !== 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: tool-bash
+                name: '@deepseek-ai/dsh-tool-bash'
+                disabled: !!js process.platform === 'win32'
+              - id: tool-pwsh
+                name: '@deepseek-ai/dsh-tool-pwsh'
+                disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              waitTimeoutMs: 5000
+              maxWaitTimeoutMs: 5000
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

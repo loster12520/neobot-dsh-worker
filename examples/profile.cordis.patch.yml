@@ -1,0 +1,16 @@
+# 把本文件内容合并到 ~/.dsh/profiles/neobot-worker/cordis.patch.yml 的 insert 列表，
+# 与 bundle 自带的 cordis.patch.yml 叠加。真实 token 不要提交到 git。
+- insert:
+    - id: neobot-worker
+      name: neobot-dsh-worker
+      config:
+        gatewayUrl: "http://127.0.0.1:8791"
+        token: "REPLACE_WITH_32+_CHAR_RANDOM_TOKEN"
+        daemonId: "devbox-a"
+        stateDir: "~/.dsh/state/neobot-worker"
+        workspaces:
+          - "/home/you/project"
+        maxWorkers: 2
+        pollWaitSeconds: 25
+        taskStaleSeconds: 900
+        agentPreset: "neobot-worker"

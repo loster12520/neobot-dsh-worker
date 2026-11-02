@@ -1,0 +1,7 @@
+node_modules/
+lib/
+*.log
+.dsh-state/
+tasks.json
+tasks.json.tmp
+.env
